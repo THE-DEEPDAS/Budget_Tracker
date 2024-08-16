@@ -11,7 +11,6 @@ const BudgetTracker: React.FC = () => {
   const [categories, setCategories] = useState<string[]>(['Food', 'Transportation', 'Utilities', 'Entertainment']);
   const [totalBudget, setTotalBudget] = useState<number>(0);
   const [idealPlan, setIdealPlan] = useState<{ [key: string]: number }>({});
-  const [customPlan, setCustomPlan] = useState<{ [key: string]: number }>({});
   const [actualExpenses, setActualExpenses] = useState<{ [key: string]: number }>({});
   const [expenseCategory, setExpenseCategory] = useState<string>(categories[0]);
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
@@ -19,7 +18,18 @@ const BudgetTracker: React.FC = () => {
   const [balanceHistory, setBalanceHistory] = useState<number[]>([totalBudget]);
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [additionalBudget, setAdditionalBudget] = useState<number>(0);
-  const [isCustomBudgeting, setIsCustomBudgeting] = useState<boolean>(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string>('');
+  const [categoryBudgets, setCategoryBudgets] = useState<{ [key: string]: number }>({});
+  const [showUpdateForm, setShowUpdateForm] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Set the initial ideal plan when categories or totalBudget changes
+    const newIdealPlan = categories.reduce((acc, category) => {
+      acc[category] = totalBudget / categories.length;
+      return acc;
+    }, {} as { [key: string]: number });
+    setIdealPlan(newIdealPlan);
+  }, [categories, totalBudget]);
 
   useEffect(() => {
     if (expenseMessage) {
@@ -32,28 +42,20 @@ const BudgetTracker: React.FC = () => {
     }
   }, [expenseMessage]);
 
-  useEffect(() => {
-    const newIdealPlan = categories.reduce((acc, category) => {
-      acc[category] = totalBudget / categories.length;
-      return acc;
-    }, {} as { [key: string]: number });
-    setIdealPlan(newIdealPlan);
-    setCustomPlan(newIdealPlan); // Initialize custom plan as the ideal plan
-  }, [totalBudget, categories]);
-
   const handleAddCategory = (newCategory: string) => {
     setCategories([...categories, newCategory]);
     setExpenseCategory(newCategory);
+    setCategoryBudgets({ ...categoryBudgets, [newCategory]: 0 });
   };
 
   const handleBudgetSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const newIdealPlan = categories.reduce((acc, category) => {
-      acc[category] = totalBudget / categories.length;
+      acc[category] = categoryBudgets[category] || totalBudget / categories.length;
       return acc;
     }, {} as { [key: string]: number });
     setIdealPlan(newIdealPlan);
-    setCustomPlan(newIdealPlan); // Update custom plan when setting the budget
+    setShowUpdateForm(false); // Hide the update form after submission
   };
 
   const handleExpenseSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -103,21 +105,25 @@ const BudgetTracker: React.FC = () => {
     setAdditionalBudget(0); // Reset additional budget input field
   };
 
-  const handleCustomPlanChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setCustomPlan(prevPlan => ({
-      ...prevPlan,
-      [name]: parseFloat(value)
-    }));
+  const handleDeleteCategory = () => {
+    setCategories(prevCategories => prevCategories.filter(category => category !== categoryToDelete));
+    setCategoryToDelete('');
+    setCategoryBudgets(prevBudgets => {
+      const newBudgets = { ...prevBudgets };
+      delete newBudgets[categoryToDelete];
+      return newBudgets;
+    });
   };
 
-  const handleSaveCustomPlan = () => {
-    setIdealPlan(customPlan);
-    setIsCustomBudgeting(false); // Hide custom budgeting form after saving
+  const handleCategoryBudgetChange = (event: React.ChangeEvent<HTMLInputElement>, category: string) => {
+    setCategoryBudgets({
+      ...categoryBudgets,
+      [category]: parseFloat(event.target.value)
+    });
   };
 
-  const toggleCustomBudgeting = () => {
-    setIsCustomBudgeting(prev => !prev); // Toggle custom budgeting form visibility
+  const toggleUpdateForm = () => {
+    setShowUpdateForm(!showUpdateForm);
   };
 
   const pieChartData = {
@@ -171,12 +177,10 @@ const BudgetTracker: React.FC = () => {
         </section>
         <section className="increase-budget">
           <h2>Increase Your Budget</h2>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleIncreaseBudget();
-            }}
-          >
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            handleIncreaseBudget();
+          }}>
             <label htmlFor="additional-budget">Additional Amount:</label>
             <input
               type="number"
@@ -190,99 +194,108 @@ const BudgetTracker: React.FC = () => {
           </form>
         </section>
         <AddCategory onCategoryAdd={handleAddCategory} />
-        {Object.keys(idealPlan).length > 0 && (
-          <>
-            <section className="ideal-plan">
-              <h2>Ideal Plan</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map((category) => (
-                    <tr key={category}>
-                      <td>{category}</td>
-                      <td>{idealPlan[category]?.toFixed(2) || '0.00'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button onClick={toggleCustomBudgeting}>
-                {isCustomBudgeting ? 'Close Custom Budgeting' : 'Custom Budgeting'}
-              </button>
-              {isCustomBudgeting && (
-                <div className="custom-budgeting-form">
-                  <h2>Custom Budgeting</h2>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSaveCustomPlan();
-                    }}
-                  >
-                    {categories.map((category) => (
-                      <div key={category}>
-                        <label htmlFor={`custom-${category}`}>{category}:</label>
-                        <input
-                          type="number"
-                          id={`custom-${category}`}
-                          name={category}
-                          value={customPlan[category] || ''}
-                          onChange={handleCustomPlanChange}
-                          required
-                        />
-                      </div>
-                    ))}
-                    <button type="submit"><b>Save Custom Plan</b></button>
-                  </form>
-                </div>
-              )}
-            </section>
-
-            <section className="expense-input">
-              <h2>Add Expense</h2>
-              <form onSubmit={handleExpenseSubmit}>
-                <label htmlFor="category">Category:</label>
-                <select
-                  id="category"
-                  value={expenseCategory}
-                  onChange={handleCategoryChange}
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-                <label htmlFor="amount">Amount:</label>
-                <input
-                  type="number"
-                  id="amount"
-                  value={expenseAmount}
-                  onChange={handleAmountChange}
-                  required
-                  style={{ backgroundColor: "#3b3939", color: "white" }}
-                />
-                <button type="submit"><b>Submit Expense</b></button>
+        <section className="delete-category">
+          <h2>Delete Category</h2>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleDeleteCategory();
+            }}
+          >
+            <label htmlFor="category-to-delete">Select Category to Delete:</label>
+            <select
+              id="category-to-delete"
+              value={categoryToDelete}
+              onChange={(e) => setCategoryToDelete(e.target.value)}
+              style={{ backgroundColor: "#3b3939", color: "white" }}
+            >
+              <option value="" disabled>Select a category</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+            <button type="submit"><b>Delete Category</b></button>
+          </form>
+        </section>
+        <section className="ideal-plan">
+          <h2>Ideal Plan</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Ideal Budget</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((category) => (
+                <tr key={category}>
+                  <td>{category}</td>
+                  <td>${idealPlan[category]?.toFixed(2) || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={toggleUpdateForm}>
+            {showUpdateForm ? 'Hide Custom Budgeting' : 'Custom Budgeting'}
+          </button>
+          {showUpdateForm && (
+            <div className="ideal-plan-form">
+              <h3>Custom Budgeting</h3>
+              <form onSubmit={handleBudgetSubmit}>
+                {categories.map((category) => (
+                  <div key={category}>
+                    <label htmlFor={`budget-${category}`}>{category}:</label>
+                    <input
+                      type="number"
+                      id={`budget-${category}`}
+                      value={categoryBudgets[category] || idealPlan[category] || 0}
+                      onChange={(e) => handleCategoryBudgetChange(e, category)}
+                    />
+                  </div>
+                ))}
+                <button type="submit"><b>Customise</b></button>
               </form>
-            </section>
-
-            <section className="expense-chart">
-              <h2>Expense Distribution</h2>
-              <Pie data={pieChartData} />
-            </section>
-
-            <section className="balance-chart">
-              <h2>Balance Over Time</h2>
-              <Line data={lineChartData} />
-            </section>
-          </>
-        )}
+            </div>
+          )}
+        </section>
+        <section className="actual-expenses">
+          <h2>Actual Expenses</h2>
+          <form onSubmit={handleExpenseSubmit}>
+            <label htmlFor="expense-category">Category:</label>
+            <select
+              id="expense-category"
+              value={expenseCategory}
+              onChange={handleCategoryChange}
+              style={{ backgroundColor: "#3b3939", color: "white" }}
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+            <label htmlFor="expense-amount">Amount:</label>
+            <input
+              type="number"
+              id="expense-amount"
+              value={expenseAmount}
+              onChange={handleAmountChange}
+              style={{ backgroundColor: "#3b3939", color: "white" }}
+            />
+            <button type="submit"><b>Add Expense</b></button>
+          </form>
+        </section>
+        <section className="expense-summary">
+          <h2>Expense Summary</h2>
+          <Pie data={pieChartData} />
+        </section>
+        <section className="balance-history">
+          <h2>Balance Over Time</h2>
+          <Line data={lineChartData} />
+        </section>
       </main>
 
       {showAlert && (
         <div className="alert">
-          <p>{expenseMessage}</p>
+          <span>{expenseMessage}</span>
           <button onClick={handleCloseAlert}>Close</button>
         </div>
       )}
