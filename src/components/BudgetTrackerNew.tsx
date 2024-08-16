@@ -11,6 +11,7 @@ const BudgetTracker: React.FC = () => {
   const [categories, setCategories] = useState<string[]>(['Food', 'Transportation', 'Utilities', 'Entertainment']);
   const [totalBudget, setTotalBudget] = useState<number>(0);
   const [idealPlan, setIdealPlan] = useState<{ [key: string]: number }>({});
+  const [customPlan, setCustomPlan] = useState<{ [key: string]: number }>({});
   const [actualExpenses, setActualExpenses] = useState<{ [key: string]: number }>({});
   const [expenseCategory, setExpenseCategory] = useState<string>(categories[0]);
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
@@ -18,6 +19,7 @@ const BudgetTracker: React.FC = () => {
   const [balanceHistory, setBalanceHistory] = useState<number[]>([totalBudget]);
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [additionalBudget, setAdditionalBudget] = useState<number>(0);
+  const [isCustomBudgeting, setIsCustomBudgeting] = useState<boolean>(false);
 
   useEffect(() => {
     if (expenseMessage) {
@@ -36,6 +38,7 @@ const BudgetTracker: React.FC = () => {
       return acc;
     }, {} as { [key: string]: number });
     setIdealPlan(newIdealPlan);
+    setCustomPlan(newIdealPlan); // Initialize custom plan as the ideal plan
   }, [totalBudget, categories]);
 
   const handleAddCategory = (newCategory: string) => {
@@ -50,6 +53,7 @@ const BudgetTracker: React.FC = () => {
       return acc;
     }, {} as { [key: string]: number });
     setIdealPlan(newIdealPlan);
+    setCustomPlan(newIdealPlan); // Update custom plan when setting the budget
   };
 
   const handleExpenseSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -99,6 +103,23 @@ const BudgetTracker: React.FC = () => {
     setAdditionalBudget(0); // Reset additional budget input field
   };
 
+  const handleCustomPlanChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setCustomPlan(prevPlan => ({
+      ...prevPlan,
+      [name]: parseFloat(value)
+    }));
+  };
+
+  const handleSaveCustomPlan = () => {
+    setIdealPlan(customPlan);
+    setIsCustomBudgeting(false); // Hide custom budgeting form after saving
+  };
+
+  const toggleCustomBudgeting = () => {
+    setIsCustomBudgeting(prev => !prev); // Toggle custom budgeting form visibility
+  };
+
   const pieChartData = {
     labels: Object.keys(actualExpenses),
     datasets: [
@@ -141,7 +162,7 @@ const BudgetTracker: React.FC = () => {
               type="number"
               id="total-budget"
               value={totalBudget}
-              style={{color: 'white'}}
+              style={{ color: 'white' }}
               onChange={(e) => setTotalBudget(parseFloat(e.target.value))}
               required
             />
@@ -189,15 +210,43 @@ const BudgetTracker: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              <button onClick={toggleCustomBudgeting}>
+                {isCustomBudgeting ? 'Close Custom Budgeting' : 'Custom Budgeting'}
+              </button>
+              {isCustomBudgeting && (
+                <div className="custom-budgeting-form">
+                  <h2>Custom Budgeting</h2>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveCustomPlan();
+                    }}
+                  >
+                    {categories.map((category) => (
+                      <div key={category}>
+                        <label htmlFor={`custom-${category}`}>{category}:</label>
+                        <input
+                          type="number"
+                          id={`custom-${category}`}
+                          name={category}
+                          value={customPlan[category] || ''}
+                          onChange={handleCustomPlanChange}
+                          required
+                        />
+                      </div>
+                    ))}
+                    <button type="submit"><b>Save Custom Plan</b></button>
+                  </form>
+                </div>
+              )}
             </section>
 
-            <section className="add-expense">
+            <section className="expense-input">
               <h2>Add Expense</h2>
               <form onSubmit={handleExpenseSubmit}>
-                <label htmlFor="expense-category">Category:</label>
+                <label htmlFor="category">Category:</label>
                 <select
-                  style={{backgroundColor:"#3b3939",color:"white"}}
-                  id="expense-category"
+                  id="category"
                   value={expenseCategory}
                   onChange={handleCategoryChange}
                 >
@@ -205,45 +254,38 @@ const BudgetTracker: React.FC = () => {
                     <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
-                <label htmlFor="expense-amount">Amount:</label>
+                <label htmlFor="amount">Amount:</label>
                 <input
                   type="number"
-                  id="expense-amount"
+                  id="amount"
                   value={expenseAmount}
                   onChange={handleAmountChange}
                   required
-                  style={{backgroundColor:"#3b3939",color:"white"}}
+                  style={{ backgroundColor: "#3b3939", color: "white" }}
                 />
-                <button type="submit"><b>Add Expense</b></button>
+                <button type="submit"><b>Submit Expense</b></button>
               </form>
-              {showAlert && expenseMessage && (
-                <div id="budget-alert" className="alert show">
-                  <span>{expenseMessage}</span>
-                  <button className="close-btn" onClick={handleCloseAlert}>×</button>
-                </div>
-              )}
             </section>
 
-            <section className="charts">
-              <div className="graph-container">
-                <h2 className="graph-title">Balance Overview</h2>
-                <div className="chart">
-                  <Line data={lineChartData} />
-                </div>
-              </div>
+            <section className="expense-chart">
+              <h2>Expense Distribution</h2>
+              <Pie data={pieChartData} />
             </section>
 
-            <section className="charts">
-              <div className="graph-container">
-                <h2 className="graph-title">Spending Distribution</h2>
-                <div className="chart">
-                  <Pie data={pieChartData} />
-                </div>
-              </div>
+            <section className="balance-chart">
+              <h2>Balance Over Time</h2>
+              <Line data={lineChartData} />
             </section>
           </>
         )}
       </main>
+
+      {showAlert && (
+        <div className="alert">
+          <p>{expenseMessage}</p>
+          <button onClick={handleCloseAlert}>Close</button>
+        </div>
+      )}
     </div>
   );
 };
