@@ -1,0 +1,123 @@
+.navbar {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 10px 20px;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3); /* Optional: adds a subtle border to distinguish the navbar */
+}
+
+/* Content padding to prevent overlap */
+body {
+    margin: 0;
+    padding-top: 60px; /* Adjust according to navbar height */
+}
+
+.navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px; /* Optional: constrains max width */
+    margin: 0 auto; /* Center align */
+}
+
+/* Flexbox for alignment */
+.navbar-header {
+    flex: 1;
+}
+
+.navbar-brand {
+    color: #fff;
+    font-size: 24px;
+    
+    padding-right: 10%;
+    text-decoration: none;
+}
+
+.navbar-toggle {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.bar {
+    height: 3px;
+    width: 25px;
+    background-color: #fff;
+    margin: 4px 0;
+}
+
+.navbar-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.nav-link {
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+/* Dropdown menu */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-toggle::after {
+    content: ' ▼';
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1001; /* Ensure dropdown is above other content */
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    color: #fff;
+    text-decoration: none;
+    display: block;
+    padding: 5px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-toggle {
+        display: flex;
+    }
+
+    .navbar-links {
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .navbar-links.open {
+        display: flex;
+    }
+
+    .dropdown-menu {
+        position: static;
+    }
+}
