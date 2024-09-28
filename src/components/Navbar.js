@@ -22,7 +22,7 @@ const Navbar = () => {
                 <div className={`navbar-links ${isOpen ? 'open' : ''}`}>
                     <a className="nav-link" href="https://capify.vercel.app/">Home</a>
                     <a className="nav-link" href="https://group-finance-manager.vercel.app/login">SplitSmart</a>
-                    <a className="nav-link" href="https://calculators-pied.vercel.app/">Calculators</a>
+                    <a className="nav-link" href="https://financial-calculators-seven.vercel.app/">Calculators</a>
                     <div className="dropdown">
                         <a href="#trackers" className="nav-link dropdown-toggle" onClick={toggleDropdown}>
                             Trackers
